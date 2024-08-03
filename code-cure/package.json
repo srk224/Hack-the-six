@@ -4,7 +4,7 @@
   "description": "",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.92.0"
+    "vscode": "^1.91.1"
   },
   "categories": [
     "Other"
@@ -13,9 +13,16 @@
   "main": "./extension.js",
   "contributes": {
     "commands": [{
-      "command": "code-cure.helloWorld",
-      "title": "Hello World"
-    }]
+      "command": "code-cure.runScript",
+      "title": "Run Script"
+    }],
+    "keybindings": [
+            {
+                "command": "code-cure.runScript",
+                "key": "ctrl+shift+q",
+                "mac": "shift+cmd+q"
+            }
+        ]
   },
   "scripts": {
     "lint": "eslint .",

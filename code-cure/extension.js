@@ -1,36 +1,73 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
+const cp = require('child_process');
+const path = require('path');
+const os = require('os');
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-
-/**
- * @param {vscode.ExtensionContext} context
- */
 function activate(context) {
+    let disposable = vscode.commands.registerCommand('code-cure.runScript', function () {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active file to run');
+            return;
+        }
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "code-cure" is now active!');
+        const document = editor.document;
+        const filePath = editor.document.uri.fsPath;
+        const fileExtension = path.extname(filePath);
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with  registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('code-cure.helloWorld', function () {
-		// The code you place here will be executed every time your command is executed
+        if (fileExtension !== '.py') {
+            vscode.window.showErrorMessage('The active file is not a Python file');
+            return;
+        }
 
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from code-cure!');
-	});
+        runPythonScript(filePath);
+    });
 
-	context.subscriptions.push(disposable);
+    context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
 function deactivate() {}
 
-module.exports = {
-	activate,
-	deactivate
+function getPythonCommand() {
+    if (os.platform() === 'win32') {
+        return 'python'; // or provide the full path like 'C:\\Python39\\python.exe'
+    } else {
+        return 'python3'; // For Unix-based systems, often it's python3
+    }
 }
+
+function runPythonScript(filePath) {
+    const pythonCommand = getPythonCommand();
+    let scriptOutput = '';
+    let scriptError = '';
+
+    const process = cp.spawn(pythonCommand, [filePath]);
+
+    process.stdout.on('data', (data) => {
+        scriptOutput += data.toString();
+    });
+
+    process.stderr.on('data', (data) => {
+        scriptError += data.toString();
+    });
+
+    process.on('close', (code) => {
+        vscode.window.showInformationMessage(`Script Output: ${scriptOutput}`);
+        console.log(`Script Output: ${scriptOutput}`);
+        const terminal = vscode.window.createTerminal('Python Terminal');
+        terminal.show();
+        terminal.sendText(`python ${filePath}`);
+        vscode.window.showInformationMessage(`started processsing`);
+        logError(scriptError);
+    });
+}
+
+function logError(error) {
+    // Here you can implement logging to a file or another logging mechanism
+    console.log(`Logged Error: ${error}`);
+}
+
+module.exports = {
+    activate,
+    deactivate
+};
