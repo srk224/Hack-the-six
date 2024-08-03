@@ -56,7 +56,7 @@ function runPythonScript(filePath) {
         console.log(`Script Output: ${scriptOutput}`);
         const terminal = vscode.window.createTerminal('Python Terminal');
         terminal.show();
-        terminal.sendText(`python ${filePath}`);
+        terminal.sendText(`${getPythonCommand()} ${filePath}`);
         vscode.window.showInformationMessage(`started processsing`);
         logError(scriptError);
     });
