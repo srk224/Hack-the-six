@@ -3,9 +3,16 @@ from dotenv import load_dotenv
 import os
 import json
 
-f = open('data.json')
+# Get the directory of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
 
-data = json.load(f)
+# Construct the path to input.json
+input_json_path = os.path.join(script_dir, 'input.json')
+
+
+# Load input data
+with open(input_json_path) as f:
+    data = json.load(f)
 
 load_dotenv()
 client = AzureOpenAI(
@@ -16,8 +23,8 @@ client = AzureOpenAI(
 response = client.chat.completions.create(
     model="gpt-35-turbo", 
     messages=[
-        {"role": "system", "content": "Assistant is a large language model trained by OpenAI. You are supposed to Fix the code in error I will give you, please output the code only and not any text"},
-        {"role": "user", "content": f"I am gonna provide you some code which is as below {data["fileContent"]}. It has the following errors {data['errorMessage']}, with the following file structure {data['fileStructure']} Please, fix the Eroor and provide the correct code. Output the code only, no text."}
+        {"role": "system", "content": "Assistant is a large language model trained by OpenAI. You are supposed to fix the code in error I will give you, please output the code only and not any text."},
+        {"role": "user", "content": f"I am gonna provide you some code which is as below {data['fileContent']}. It has the following errors {data['errorMessage']}, with the following file structure {data['fileStructure']}. Please, fix the errors and provide the correct code. Output the code only, no text."}
     ]
 )
 
@@ -37,7 +44,7 @@ if start_index != -1 and end_index != -1:
 else:
     print("No content found within triple backticks.")
 
-filename = 'response_data.txt'
+filename = os.path.join(script_dir, 'response_data.txt')
 
 with open(filename, 'w') as file:
     file.write(code_content)

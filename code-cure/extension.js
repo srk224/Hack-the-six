@@ -79,6 +79,7 @@ function runPythonScript(filePath) {
         try{
             console.log('Calling OpenAI Script...')
             await runOpenAIScript(extensionRootPath);
+            readAndDisplayResponseData(terminal);
         } catch (error){
             console.log('Error with running'+error);
         }
@@ -110,7 +111,7 @@ async function runOpenAIScript(extensionRootPath) {
 
         process.on('close', (code) => {
             if (code === 0) {
-                // console.log('Script Executed. Writing data to terminal...');
+                console.log('Script Executed. Writing data to terminal...');
                 resolve();
             } else {
                 // console.error(`openai.py script failed with code ${code}.`);
@@ -155,9 +156,9 @@ function getFileStructure(dir) {
     return result;
 }
 
-function readAndDisplayResponseData() {
+function readAndDisplayResponseData(terminal) {
     const extensionRootPath = path.join(__dirname, '..');
-    const responseFilePath = path.join(extensionRootPath, 'response_data.txt');
+    const responseFilePath = path.join(extensionRootPath, 'code-cure', 'response_data.txt'); // Adjusted path to response_data.txt
     
     if (!fs.existsSync(responseFilePath)) {
         console.error('File does not exist:', responseFilePath);
@@ -166,8 +167,8 @@ function readAndDisplayResponseData() {
 
     try {
         const data = fs.readFileSync(responseFilePath, 'utf-8');
-        vscode.window.showInformationMessage('Response Data: ' + data);
-        displayInTerminal(data);
+        const wrappedData = `\n# Here is a suggestion to help with your error:\n${data.split('\n').map(line => `# ${line}`).join('\n')}\n`;
+        terminal.sendText(wrappedData);
     } catch (error) {
         console.error('Error reading or displaying response data:', error);
     }
