@@ -6,6 +6,8 @@ While attending Hack the 6ix, our team had a chance to speak to Advait from the 
 ## What it does
 Code Cure can execute your Python files and display the output in your terminal. If your code encounters any errors, our extension provides suggestions in a pop-up on how to resolve them.
 
+![original](https://github.com/user-attachments/assets/523b2311-c9e5-4380-a02b-87e51a0c66c4)
+
 ## How we built it
 We utilized Azure's OpenAI service to power our AI-driven code fixing suggestions. The rest of the logic behind our VS Code extension is implemented using JavaScript.
 
