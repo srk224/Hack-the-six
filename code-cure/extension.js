@@ -19,7 +19,6 @@ function activate(context) {
             return;
         }
 
-        const document = editor.document;
         const filePath = editor.document.uri.fsPath;
         const fileExtension = path.extname(filePath);
 
@@ -39,11 +38,12 @@ function activate(context) {
 
 function deactivate() {}
 
+// To help in running python scripts depending on end-user system
 function getPythonCommand() {
     if (os.platform() === 'win32') {
-        return 'python'; // or provide the full path like 'C:\\Python39\\python.exe'
+        return 'python';
     } else {
-        return 'python3'; // For Unix-based systems, often it's python3
+        return 'python3';
     }
 }
 
@@ -62,7 +62,7 @@ function runPythonScript(filePath) {
         scriptError += data.toString();
     });
 
-    process.on('close', (code) => {
+    process.on('close', async (code) => {
         vscode.window.showInformationMessage(`Script Output: ${scriptOutput}`);
         // console.log(`Script Output: ${scriptOutput}`);
         const terminal = vscode.window.createTerminal('Python Terminal');
@@ -73,8 +73,15 @@ function runPythonScript(filePath) {
         // logError(scriptError);
 
         const extensionRootPath = path.join(__dirname, '..');
-        const jsonFilePath = path.join(extensionRootPath, 'input.json');
+        const jsonFilePath = path.join(extensionRootPath, 'code-cure', 'input.json');
         writeDataToFile(scriptData, jsonFilePath);
+
+        try{
+            console.log('Calling OpenAI Script...')
+            await runOpenAIScript(extensionRootPath);
+        } catch (error){
+            console.log('Error with running'+error);
+        }
     });
 
     // Get the file structure from the root directory of the workspace
@@ -83,32 +90,56 @@ function runPythonScript(filePath) {
         const rootPath = workspaceFolders[0].uri.fsPath;
         scriptData.fileStructure = getFileStructure(rootPath);
     }
-    // scriptData.fileStructure = getFileStructure(path.dirname(filePath));
-    // ThroughDirectory(path.dirname(filePath));
-    // console.log('f -- \n');
-    // for (const fileePath of walkSync(path.dirname(filePath))) {
-    //     console.log(fileePath);
-    // }
 }
 
+// Function to Trigger the open_ai_py.py file to use its API
+async function runOpenAIScript(extensionRootPath) {
+    return new Promise((resolve, reject) => {
+        const pythonCommand = getPythonCommand();
+        const openaiScriptPath = path.join(extensionRootPath,'code-cure', 'open_ai_api.py');
+        
+        const process = cp.spawn(pythonCommand, [openaiScriptPath]);
+
+        process.stdout.on('data', (data) => {
+            // console.log(`openai.py stdout: \n\n ${data}`);
+        });
+
+        process.stderr.on('data', (data) => {
+            // console.error(`openai.py stderr: ${data}`);
+        });
+
+        process.on('close', (code) => {
+            if (code === 0) {
+                // console.log('Script Executed. Writing data to terminal...');
+                resolve();
+            } else {
+                // console.error(`openai.py script failed with code ${code}.`);
+                reject(new Error(`openai.py script failed with code ${code}.`));
+            }
+        });
+    });
+}
+
+// To send input, to be then used with Open AI API
 function writeDataToFile(data, filePath) {
-    console.log('now writing to file - ');
+    console.log('Sending input...');
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
+// Logging function
 function logError(error) {
-    // Here you can implement logging to a file or another logging mechanism
     console.log(`Logged Error: ${scriptData.errorMessage}`);
     console.log(`fileContent: ${scriptData.fileContent}`);
     console.log(`filePath: ${scriptData.filePath}`);
-    let b = JSON.stringify(scriptData.fileStructure, null, 2);
-    console.log(`fileStructure: ${b}`);
+    let struc = JSON.stringify(scriptData.fileStructure, null, 2);
+    console.log(`fileStructure: ${struc}`);
 }
 
 function getStoredScriptData() {
     return scriptData;
 }
 
+// Recursive function to get complete file structure for file being run.
 function getFileStructure(dir) {
     const result = {};
     const files = fs.readdirSync(dir);
@@ -124,20 +155,23 @@ function getFileStructure(dir) {
     return result;
 }
 
-let Files  = [];
-
-function *walkSync(dir) {
-    const files = fs.readdirSync(dir, { withFileTypes: true });
-    for (const file of files) {
-      if (file.isDirectory()) {
-        yield* walkSync(path.join(dir, file.name));
-      } else {
-        yield path.join(dir, file.name);
-      }
+function readAndDisplayResponseData() {
+    const extensionRootPath = path.join(__dirname, '..');
+    const responseFilePath = path.join(extensionRootPath, 'response_data.txt');
+    
+    if (!fs.existsSync(responseFilePath)) {
+        console.error('File does not exist:', responseFilePath);
+        return;
     }
-  }
-  
- 
+
+    try {
+        const data = fs.readFileSync(responseFilePath, 'utf-8');
+        vscode.window.showInformationMessage('Response Data: ' + data);
+        displayInTerminal(data);
+    } catch (error) {
+        console.error('Error reading or displaying response data:', error);
+    }
+}
 
 module.exports = {
     activate,
